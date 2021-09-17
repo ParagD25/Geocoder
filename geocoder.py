@@ -11,27 +11,29 @@ def home():
 
 @app.route('/success',methods=['POST'])
 def success():
-    global name_of_file
+    global name_file
+
     if request.method=="POST":
         file=request.files['file']
 
         try:
-            data=pd.read_csv(file)
-            coord=Nominatim()
-            data['Coordinates']=data['Address'].apply(coord.geocode)
-            data['Latitude']=data['Coordinates'].apply(lambda lat:lat.latitude if lat!=None else None)
-            data['Longitude']=data['Coordinates'].apply(lambda lon:lon.latitude if lon!=None else None)
-            data=data.drop('Coordinates',1)
-            name_of_file=dt.datetime.now().strftime("uploads/%m_%d_%M_%s"+".csv")
-            data.to_csv(name_of_file,index=None)
-            return render_template('home.html', text=data.to_html(), btn='download.html')
+            df=pd.read_csv(file)
+            gc=Nominatim(user_agent='My_App')
+            df["coordinates"]=df["Address"].apply(gc.geocode)
+            df['Latitude'] = df['coordinates'].apply(lambda x: x.latitude if x != None else None)
+            df['Longitude'] = df['coordinates'].apply(lambda x: x.longitude if x != None else None)
+            df['Altitude'] = df['coordinates'].apply(lambda x: x.altitude if x != None else None)
+            df=df.drop("coordinates",1)
+            name_file=dt.datetime.now().strftime("uploads/%d-%m-%Y_%S"+".csv")
+            df.to_csv(name_file,index=None)
+            return render_template("home.html", text=df.to_html(), admin_management='download.html')
 
         except:
-            return render_template('home.html',text='Please Enter Address Column in your csv file.')
+            return render_template("home.html", text="Please Include Address Column in your .csv file")
 
 @app.route('/download/')
 def download():
-    return send_file(name_of_file,attachment_filename='Coordinates.csv',as_attachment=True)
+    return send_file(name_file,attachment_filename='Coordinates.csv',as_attachment=True)
 
 if __name__=='__main__':
     app.run(debug=True)
